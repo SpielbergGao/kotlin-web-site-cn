@@ -8,7 +8,7 @@ title: "集合写操作"
 # 集合写操作
 
 [可变集合](collections-overview.html#集合类型)支持更改集合内容的操作，例如添加或删除元素。
-在次页面上，我们将描述实现 `MutableCollection` 的所有写操作。
+在此页面上，我们将描述实现 `MutableCollection` 的所有写操作。
 有关 `List` 与 `Map` 可用的更多特定操作，请分别参见 [List 相关操作](list-operations.html)与 [Map 相关操作](map-operations.html)。
 
 ## 添加元素
@@ -80,9 +80,9 @@ fun main() {
 fun main() {
 //sampleStart
     val numbers = mutableListOf(1, 2, 3, 4, 3)
-    numbers.remove(3)                    // removes the first `3`
+    numbers.remove(3)                    // 删除了第一个 `3`
     println(numbers)
-    numbers.remove(5)                    // removes nothing
+    numbers.remove(5)                    // 什么都没删除
     println(numbers)
 //sampleEnd
 }
@@ -133,7 +133,7 @@ fun main() {
     numbers -= "three"
     println(numbers)
     numbers -= listOf("four", "five")    
-    //numbers -= listOf("four")    // does the same as above
+    //numbers -= listOf("four")    // 与上述相同
     println(numbers)    
 //sampleEnd
 }
@@ -142,7 +142,7 @@ fun main() {
 
 ## 更新元素
 
-list 和 set 还提供更新元素的操作。
+list 和 map 还提供更新元素的操作。
 它们在 [List 相关操作](list-operations.html)与 [Map 相关操作](map-operations.html)中有所描述。
 对于 set 来说，更新没有意义，因为它实际上是移除一个元素并添加另一个元素。
 

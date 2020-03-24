@@ -232,8 +232,59 @@ val l = 1L + 3 // Long + Int => Long
 
 ### 运算
 
-Kotlin支持数字运算的标准集，运算被定义为相应的类成员（但编译器会将函数调用优化为相应的指令）。
+Kotlin支持数字运算的标准集（`+` `-` `*` `/` `%`），运算被定义<!--
+-->为相应的类成员（但编译器会将函数调用优化为相应的指令）。
 参见[运算符重载](operator-overloading.html)。
+
+#### 整数除法
+
+请注意，整数间的除法总是返回整数。会丢弃任何小数部分。例如：
+
+<div class="sample" markdown="1" theme="idea">
+
+```kotlin
+fun main() {
+//sampleStart
+    val x = 5 / 2
+    //println(x == 2.5) // ERROR: Operator '==' cannot be applied to 'Int' and 'Double'
+    println(x == 2)
+//sampleEnd
+}
+```
+
+</div>
+
+对于任何两个整数类型之间的除法来说都是如此。
+
+<div class="sample" markdown="1" theme="idea">
+
+```kotlin
+fun main() {
+//sampleStart
+    val x = 5L / 2
+    println(x == 2L)
+//sampleEnd
+}
+```
+
+</div>
+
+如需返回浮点类型，请将其中的一个参数显式转换为浮点类型。
+
+<div class="sample" markdown="1" theme="idea">
+
+```kotlin
+fun main() {
+//sampleStart
+    val x = 5 / 2.toDouble()
+    println(x == 2.5)
+//sampleEnd
+}
+```
+
+</div>
+
+#### 位运算
 
 对于位运算，没有特殊字符来表示，而只可用中缀方式调用具名函数，例如:
 
@@ -468,8 +519,8 @@ val a = 1UL // ULong，即使未提供预期类型并且常量适于 UInt
 
 选择加入无符号整型有两种可行的方式：将 API 标记为实验性的，或者无需标记。
 
-- 如需传播实验性，要么使用 `@ExperimentalUnsignedTypes` 标注使用了无符号整型的声明，要么将 `-Xexperimental=kotlin.ExperimentalUnsignedTypes` 传给编译器（请注意，后者会使所编译的模块内的*所有*声明都具实验性）
-- 如需选择加入而不传播实验性，要么使用 `@UseExperimental(ExperimentalUnsignedTypes::class)` 注解标注声明，要么将 `-Xuse-experimental=kotlin.ExperimentalUnsignedTypes` 传给编译器
+- 如需传播实验性，请以 `@ExperimentalUnsignedTypes` 标注使用了无符号整型的声明。
+- 如需选择加入而不传播实验性，要么使用 `@OptIn(ExperimentalUnsignedTypes::class)` 注解标注声明，要么将 `-Xopt-in=kotlin.ExperimentalUnsignedTypes` 传给编译器。
 
 你的客户是否必须选择使用你的 API 取决于你，不过请记住，无符号整型是一个实验性特性，因此使用它们的 API 可能会因语言的变更而发生突然破坏。
 

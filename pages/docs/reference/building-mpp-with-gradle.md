@@ -28,6 +28,8 @@ title: "使用 Gradle 构建多平台项目"
 * [默认项目布局](#默认项目布局)
 * [运行测试](#运行测试)
 * [发布多平台库](#发布多平台库)
+    * [实验性的元数据发布模式](#实验性的元数据发布模式)
+    * [目标消歧义](#目标消歧义)
 * [JVM 目标平台中的 Java 支持](#jvm-目标平台中的-java-支持)
 * [Android 支持](#android-支持)
     * [发布 Android 库](#发布-android-库)
@@ -719,24 +721,24 @@ kotlin {
 
 ### 关联源集
 
-Kotlin source sets may be connected with the *'depends on'* relation, so that if a source set `foo`  depends on a
-source set `bar` then:
+Kotlin 源集可能与 *“depends on”* 关系有关，因而如果一个源集 `foo` 依赖于一个<!--
+-->源集 `bar`，那么：
 
-* whenever `foo` is compiled for a certain target, `bar` takes part in that compilation as well and is also compiled 
-into the same target binary form, such as JVM class files or JS code;
+* 每当为特定目标编译 `foo` 时，`bar` 也参与到编译中，并且还会编译成<!--
+-->相同的目标二进制格式，例如 JVM 类文件或者 JS 代码；
 
-* sources of `foo` 'see' the declarations of `bar`, including the `internal` ones, and the [dependencies](#添加依赖) of `bar`, even those
- specified as `implementation` dependencies;
+* `foo` 源中的代码能 “看到” `bar` 的定义，包括 `internal` 的以及 `bar` 的[依赖](#添加依赖)，即使是<!--
+-->被指定为 `implementation` 的依赖；
 
-* `foo` may contain [platform-specific implementations](platform-specific-declarations.html) for the expected declarations of `bar`;
+* `foo` 可能包含针对 `bar` 的预期定义的[特定平台的实现](platform-specific-declarations.html)；
 
-* the resources of `bar` are always processed and copied along with the resources of `foo`;
+* `bar` 的资源总是与 `foo` 的资源一起处理与复制；
 
-* the [语言设置](#语言设置) of `foo` and `bar` should be consistent;
+* `foo` 与 `bar` 的语言应该是一致的；
 
-Circular source set dependencies are prohibited.
+不允许源集间循环依赖。
 
-The source sets DSL can be used to define these connections between the source sets:
+源集 DSL 可以用于定义两个源集之间的联系：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -774,12 +776,12 @@ kotlin {
 </div>
 </div>
 
-Custom source sets created in addition to the [default ones](#默认项目布局) should be explicitly included into
- the dependencies hierarchy to be able to use declarations from other source sets and, most importantly, to take part 
- in compilations. 
-Most often, they need a `dependsOn(commonMain)` or `dependsOn(commonTest)` statement, and some of the default platform-specific
- source sets should depend on the custom ones, 
- directly or indirectly:
+除了[默认源集](#默认项目布局)外，还应将创建的自定义源集显式地包含在<!--
+-->依赖关系层次结构中，以便于能够使用其他源集的定义，并且最重要的是能够参与到<!--
+-->编译中。
+大多数时候，它们需要 `dependsOn(commonMain)` 或 `dependsOn(commonTest)` 声明，并且一些默认的特定平台的<!--
+-->源集应该直接或间接地<!--
+-->依赖于自定义的源集
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -790,17 +792,17 @@ kotlin {
     linuxX64()
 
     sourceSets {
-        // custom source set with tests for the two targets
+        // 带有两个目标测试的自定义源集
         desktopTest {
             dependsOn commonTest
             /* …… */
         }
-        // Make the 'windows' default test source set for depend on 'desktopTest'
+        // 将 “windows” 的默认测试源集设置为依赖于 “desktopTest”
         mingwX64().compilations.test.defaultSourceSet {
             dependsOn desktopTest
             /* …… */
         }
-        // And do the same for the other target:
+        // 并且为其他目标做同样的工作：
         linuxX64().compilations.test.defaultSourceSet {
             dependsOn desktopTest
             /* …… */
@@ -821,17 +823,17 @@ kotlin {
     linuxX64()
 
     sourceSets {
-        // custom source set with tests for the two targets
+        // 带有两个目标测试的自定义源集
         val desktopTest by creating {
             dependsOn(getByName("commonTest"))
             /* …… */
         }
-        // Make the 'windows' default test source set for depend on 'desktopTest'
+        // 将 “windows” 的默认测试源集设置为依赖于 “desktopTest”
         mingwX64().compilations["test"].defaultSourceSet {
             dependsOn(desktopTest)
             /* …… */
         }
-        // And do the same for the other target:
+        // 并且为其他目标做同样的工作：
         linuxX64().compilations["test"].defaultSourceSet {
             dependsOn(desktopTest)
             /* …… */
@@ -845,23 +847,23 @@ kotlin {
 
 ### 添加依赖
 
-To add a dependency to a source set, use a `dependencies { ... }` block of the source sets DSL. Four kinds of dependencies
-are supported:
+为了添加依赖到源集中，需要在源集 DSL 中使用 `dependencies { …… }` 块，支持以下<!--
+-->四种依赖：
 
-* `api` dependencies are used both during compilation and at runtime and are exported to library consumers. If any types
-  from a dependency are used in the public API of the current module, then it should be an `api` dependency;
+* `api` 依赖在编译项与运行时均会使用，并导出到库使用者。如果<!--
+-->当前模块的公共 API 中使用了依赖中的任何类型，那么它应该是一个 `api` 依赖；
   
-* `implementation` dependencies are used during compilation and at runtime for the current module, but are not exposed for compilation 
-  of other modules depending on the one with the `implementation` dependency. The`implementation` dependency kind should be used for 
-  dependencies needed for the internal logic of a module. If a module is an endpoint application which is not published, it may
-  use `implementation` dependencies instead of `api` ones.
+* `implementation` 依赖在当前模块的编译项与运行时均会使用，但不暴露<!--
+-->给其他具有 `implementation` 依赖的模块的编译项。对于那种内部逻辑实现所需要的依赖，应该使用 `implementation`
+依赖类型。如果模块是一个未发布的 endpoint 应用，它或许该<!--
+-->使用 `implementation` 依赖而不是 `api` 依赖。
 
-* `compileOnly` dependencies are only used for compilation of the current module and are available neither at runtime nor during compilation
-  of other modules. These dependencies should be used for APIs which have a third-party implementation available at runtime.
+* `compileOnly` 依赖仅用于当前模块的编译项，并且在运行时与<!---
+->其他模块的编译项均不可用。这些依赖应该用于运行时具有第三方实现 API 中。
   
-* `runtimeOnly` dependencies are available at runtime but are not visible during compilation of any module.
+* `runtimeOnly` 依赖在运行时可用，但在任何模块的编译项都是不可见的。
 
-Dependencies are specified per source set as follows:
+每个源集都可以通过以下方式指定依赖：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -909,16 +911,16 @@ kotlin {
 </div>
 </div>
 
-Note that for the IDE to correctly analyze the dependencies of the common sources, the common source sets need to have 
-corresponding dependencies on the Kotlin metadata packages in addition to the platform-specific artifact dependencies 
-of the platform-specific source sets. Usually, an artifact with a suffix 
-`-common` (as in `kotlin-stdlib-common`) or `-metadata` is required when using a published library (unless it is 
-published with Gradle metadata, as described below).
+请注意，为了 IDE 能够正确地识别公共源的依赖，除了特定平台源集构件的依赖外，
+公共源集还需要在
+Kotlin 元数据包中具有相应的依赖。通常，
+在使用一个已发布的库时（除非它与 Gradle 元数据一起发布，如下所述），
+需要有一个后缀为 `-common` （如 `kotlin-stdlib-common`）或 `-metadata` 的构件。
 
-However, a `project('...')` dependency on another multiplatform project is resolved to an appropriate target
-automatically. It is enough to specify a single `project('...')` dependency in a source set's dependencies, 
-and the compilations that include the source set will receive a corresponding platform-specific artifact of 
-that project, given that it has a compatible target:
+然而，在另一个多平台项目中的 `project('……')` 依赖会被自动处理成一个<!--
+-->合适的目标。在源集的依赖中指定单个 `project('……')` 依赖就足够了，
+并且包含在源集中的编译将会接收到其项目的合适的特定平台的构件，
+鉴于它具有兼容的目标：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -928,8 +930,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                // All of the compilations that include source set 'commonMain'
-                // will get this dependency resolved to a compatible target, if any:
+                // 包含源集 “commonMain” 的所有编译项
+                // 会将依赖项解析为兼容的目标（如果有）：
                 api project(':foo-lib')
             }
         }
@@ -948,8 +950,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                // All of the compilations that include source set 'commonMain'
-                // will get this dependency resolved to a compatible target, if any:
+                // 包含源集 “commonMain” 的所有编译项
+                // 会将依赖项解析为兼容的目标（如果有）：
                 api(project(":foo-lib"))
             }
         }
@@ -960,13 +962,13 @@ kotlin {
 </div>
 </div>
 
-Likewise, if a multiplatform library is published in the experimental [Gradle metadata publishing mode](#experimental-metadata-publishing-mode) and the project 
-is set up to consume the metadata as well, then it is enough to specify a dependency only once, for the common source set. 
-Otherwise, each platform-specific source set should be 
-provided with a corresponding platform module of the library, in addition to the common module, as shown above.
+同样的，如果以实验性的[Gradle 元数据发布模式](#实验性的元数据发布模式)发布了一个多平台库，并且该项目<!--
+-->也设置为使用元数据，那么只需要为公共源集指定一次依赖。
+除此以外，应该为每个特定平台的源集<!--
+-->提供库的相应平台模块（除了公共模块），如上所示。
 
-An alternative way to specify the dependencies is to use the Gradle built-in DSL at the top level with the configuration names following the 
-pattern `<sourceSetName><DependencyKind>`:
+指定依赖的另一种方式是在顶层使用 Gradle 内置 DSL，其配置名称遵循<!--
+-->模式 `<源集名称><依赖类型>`：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -994,15 +996,15 @@ dependencies {
 </div>
 </div>
 
-Some of the Gradle built-in dependencies, like `gradleApi()`, `localGroovy()`, or `gradleTestKit()` are not available
-in the source sets dependency DSL. You can, however, add them within the top-level dependency block, as shown above.
+一些 Gradle 内置依赖（例如 `gradleApi()`、`localGroovy()`、或 `gradleTestKit()`）<!--
+-->在源集依赖 DSL 中是不可用的。但是，你可以将它们添加到顶级依赖块中，如上所示。
 
-A dependency on a Kotlin module like `kotlin-stdlib` or `kotlin-reflect` may be added with the notation `kotlin("stdlib")`,
-which is a shorthand for `"org.jetbrains.kotlin:kotlin-stdlib"`.
+可以使用 `kotlin("stdlib")` 表示法添加对 Kotlin 模块（例如 `kotlin-stdlib` 或 `kotlin-reflect`）的依赖，
+这是 `"org.jetbrains.kotlin:kotlin-stdlib"` 的简写。
 
 ### 语言设置
 
-The language settings for a source set can be specified as follows:
+源集的语言设置可以通过以下方式指定：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1012,11 +1014,11 @@ kotlin {
     sourceSets {
         commonMain {
             languageSettings {
-                languageVersion = '1.3' // possible values: '1.0', '1.1', '1.2', '1.3'
-                apiVersion = '1.3' // possible values: '1.0', '1.1', '1.2', '1.3'
-                enableLanguageFeature('InlineClasses') // language feature name
-                useExperimentalAnnotation('kotlin.ExperimentalUnsignedTypes') // annotation FQ-name
-                progressiveMode = true // false by default
+                languageVersion = '1.3' // 可填：“1.0”、“1.1”、“1.2”、“1.3”
+                apiVersion = '1.3' // 可填：“1.0”、“1.1”、“1.2”、“1.3”
+                enableLanguageFeature('InlineClasses') // 语言特性名称
+                useExperimentalAnnotation('kotlin.ExperimentalUnsignedTypes') // 注解的全限定名
+                progressiveMode = true // 默认为 false
             }
         }
     }
@@ -1034,11 +1036,11 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             languageSettings.apply {
-                languageVersion = "1.3" // possible values: '1.0', '1.1', '1.2', '1.3'
-                apiVersion = "1.3" // possible values: '1.0', '1.1', '1.2', '1.3'
-                enableLanguageFeature("InlineClasses") // language feature name
-                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes") // annotation FQ-name
-                progressiveMode = true // false by default
+                languageVersion = "1.3" // 可填：“1.0”、“1.1”、“1.2”、“1.3”
+                apiVersion = "1.3" // 可填：“1.0”、“1.1”、“1.2”、“1.3”
+                enableLanguageFeature("InlineClasses") // 语言特性名称
+                useExperimentalAnnotation("kotlin.ExperimentalUnsignedTypes") // 注解的全限定名
+                progressiveMode = true // 默认为 false
             }
         }
     }
@@ -1049,7 +1051,7 @@ kotlin {
 </div>
 
 
-It is possible to configure the language settings of all source sets at once:
+可以一次性为所有源集配置语言设置：
 
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
 
@@ -1062,75 +1064,75 @@ kotlin.sourceSets.all {
 </div>
 
 
-Language settings of a source set affect how the sources are analyzed in the IDE. Due to the current limitations, in a
-Gradle build, only the language settings of the compilation's default source set are used and are applied to all of the
-sources participating in the compilation.
+源集的语言设置会影响 IDE 识别源代码的方式。由于当前的限制，在
+Gradle 构建中，只有构建的默认源集的语言设置会被使用，并且应用于<!--
+-->参与编译的所有源代码。
 
-The language settings are checked for consistency between source sets depending on each other. Namely, if `foo` depends on `bar`:
+检查语言设置是否相互依赖，以确保源集之间的一致性。即如果 `foo` 依赖于 `bar`：
 
-* `foo` should set `languageVersion` that is greater than or equal to that of `bar`;
-* `foo` should enable all unstable language features that `bar` enables (there's no such requirement for bugfix features);
-* `foo` should use all experimental annotations that `bar` uses;
-* `apiVersion`, bugfix language features, and `progressiveMode` can be set arbitrarily; 
+* `foo` 需设置高于或等于 `bar` 的 `languageVersion`；
+* `foo` 需要启用所有 `bar` 启用的非稳定语言特性（对于错误修复特性则没有这种要求）；
+* `foo` 需要使用所有 `bar` 使用的实验性注解；
+* `apiVersion`、错误修复的语言特性 和 `progressiveMode` 可以被任意设置；
 
 ## 默认项目布局
 
-By default, each project contains two source sets, `commonMain` and `commonTest`, where one can place all the code that should be 
-shared between all of the target platforms. These source sets are added to each production and test compilation, respectively.
+默认情况下，每个项目都包含了两个源集，`commonMain` 与 `commonTest`，在其中可以放置应在<!--
+-->所有目标平台之间共享的所有代码。这些源集会被分别添加到每个生产和测试编译项。
 
-Then, once a target is added, default compilations are created for it:
+之后，当目标被添加时，将为其创建默认编译项：
 
-* `main` and `test` compilations for JVM, JS, and Native targets;
-* a compilation per [Android build variant](https://developer.android.com/studio/build/build-variants), for Android targets;
+* 针对 JVM、JS 和原生目标的 `main` 与 `test` 编译项；
+* 针对每个 [Android 构建版本](https://developer.android.com/studio/build/build-variants)的编译项；
 
-For each compilation, there is a default source set under the name composed as `<targetName><CompilationName>`. This default source
-set participates in the compilation, and thus it should be used for the platform-specific code and dependencies, and for adding other source
- sets to the compilation by the means of 'depends on'. For example, a project with
-targets `jvm6` (JVM) and `nodeJs` (JS) will have source sets: `commonMain`, `commonTest`, `jvm6Main`, `jvm6Test`, `nodeJsMain`, `nodeJsTest`.
+对于每个编译项，在由 `<目标名称><编译项名称>` 组成的名称下都有一个默认源集。这个默认源集<!--
+-->参与编译，因此它应用于特定平台的代码与依赖，并且以依赖的方式将其他<!--
+-->源集添加到编译项中。例如，一个有着
+`jvm6` （JVM）与 `nodeJs`（JS）目标的项目将拥有源集：`commonMain`、`commonTest`、`jvm6Main`、`jvm6Test`、`nodeJsMain` 以及 `nodeJsTest`。
 
-Numerous use cases are covered by just the default source sets and don't require custom source sets.
+仅仅是默认源集就涵盖了很多用例，因此不需要自定义源集。
  
-Each source set by default has its Kotlin sources under `src/<sourceSetName>/kotlin` directory and the resources under `src/<sourceSetName>/resources`.
+每个源集都默认拥有在 `src/<源集名称>/kotlin` 目录下的 Kotlin 源代码与在 `src/<源集名称>/resources` 目录下的资源。
 
-In Android projects, additional Kotlin source sets are created for each [Android source set](https://developer.android.com/studio/build/#sourcesets).
-If the Android target has a name `foo`, the Android source set `bar` gets a Kotlin source set counterpart `fooBar`.
-The Kotlin compilations, however, are able to consume Kotlin sources from all of the directories `src/bar/java`,
-`src/bar/kotlin`, and `src/fooBar/kotlin`. Java sources are only read from the first of these directories.
+在 Android 项目中，将为每个 [Android 源集](https://developer.android.com/studio/build/#sourcesets)创建额外的 Kotlin 源集.
+如果其 Android 目标的名称为 `foo`，那么其 Android 源集 `bar` 将获得一个对应的 Kotlin 源集 `fooBar`。
+然而，Kotlin 编译项能够使用来自所有 `src/bar/java`、`src/bar/kotlin` 以及 `src/fooBar/kotlin`
+目录的 Kotlin 源代码。而 Java 源代码则只能从上述第一个目录读取。
 
 ## 运行测试
 
-Running tests in a Gradle build is currently supported by default for JVM, Android, Linux, Windows and macOS; 
-JS and other Kotlin/Native targets
-need to be manually configured to run the tests with an appropriate environment, an emulator or a test framework.  
+目前默认支持 JVM、Android、Linux、Windows 以及 macOS 在 Gradle 构建中运行测试；
+JS 与其他 Kotlin/Native 目标<!--
+-->需要手动配置以在适当的环境、模拟器或测试框架下运行测试。
 
-A test task is created under the name `<targetName>Test` for each target that is suitable for testing. Run the `check` task to run 
-the tests for all targets. 
+将为每个适合测试的目标创建名为 `<目标名称>Test` 的测试任务。运行 `check` 任务以<!--
+-->为所有目标运行测试。
 
-As the `commonTest` [default source set](#默认项目布局) is added to all test compilations, tests and test tools that are needed
-on all target platforms may be placed there.
+由于 `commonTest` [默认源集](#默认项目布局)被添加到所有测试编译项中，所以会将所有目标平台<!--
+-->上所需的测试和测试工具放在此处。
 
-The [`kotlin.test` API](https://kotlinlang.org/api/latest/kotlin.test/index.html) is available for multiplatform tests.
-Add the `kotlin-test-common` and `kotlin-test-annotations-common` dependencies to `commonTest` to use the assertion
-functions like `kotlin.test.assertTrue(...)`
-and `@Test`/`@Ignore`/`@BeforeTest`/`@AfterTest` annotations in the common tests.
+[`kotlin.test` API](https://kotlinlang.org/api/latest/kotlin.test/index.html)对于多平台测试是可用的。
+添加 `kotlin-test-common` 与 `kotlin-test-annotations-common` 依赖到 `commonTest` 以在<!--
+-->公共测试中使用断言函数（例如 `kotlin.test.assertTrue(……)`
+以及 `@Test`/`@Ignore`/`@BeforeTest`/`@AfterTest` 注解）
 
-For JVM targets, use `kotlin-test-junit` or `kotlin-test-testng` for the corresponding asserter implementation and
-annotations mapping.
+对于 JVM 目标，将 `kotlin-test-junit` 或 `kotlin-test-testng` 用于相应的断言器实现和<!--
+-->注解映射。
 
-For Kotlin/JS targets, add `kotlin-test-js` as a test dependency. At this point, test tasks for Kotlin/JS are created 
-but do not run tests by default; they should be manually configured to run the tests with a JavaScript test framework. 
+对于 Kotlin/JS 目标，把 `kotlin-test-js` 添加为测试依赖。至此，将创建针对 Kotlin/JS 的测试任务，但默认情况下并不会运行测试；
+应该手动配置它们以使用 JavaScript 测试框架运行测试。
 
-Kotlin/Native targets do not require additional test dependencies, and the `kotlin.test` API implementations are built-in.
+Kotlin/Native 目标不需要额外测试依赖，并且内置了 `kotlin.test` API 的实现。
 
 ## 发布多平台库
 
-> The set of target platforms is defined by a multiplatform library author, and they should provide all of the platform-specific implementations for the library. 
-> Adding new targets for a multiplatform library at the consumer's side is not supported. 
+> 目标平台集合由多平台库作者定义，并且他们应该为库提供所有特定平台的实现。
+> 不支持为多平台库添加用户端的新目标。
 {:.note} 
 
-A library built from a multiplatform project may be published to a Maven repository with the
-[`maven-publish` Gradle plugin](https://docs.gradle.org/current/userguide/publishing_maven.html), which can be applied as
-follows:
+来自多平台项目的库构建可以通过 [`maven-publish` Gradle 插件](https://docs.gradle.org/current/userguide/publishing_maven.html)<!--
+-->发布到 Maven 仓库，这个插件可通过<!--
+-->以下方式应用：
 
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
 
@@ -1143,7 +1145,7 @@ plugins {
 
 </div>
 
-A library also needs `group` and `version` to be set in the project:
+一个库也需要在项目中设置 `group` 与 `version` 字段：
 
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
 
@@ -1156,28 +1158,28 @@ version = "0.0.1"
 
 </div>
 
-Compared to publishing a plain Kotlin/JVM or Java project, there is no need to create publications manually
-via the `publishing { ... }` DSL. The publications are automatically created for each of the targets that can be
-built on the current host, except for the Android target, which needs an additional step to configure
-publishing, see [发布 Android 库](#发布-android-库).
+与发布一个普通的 Kotlin/JVM 或 Java 项目相比，并没有必要通过 `publishing { …… }` DSL
+来手动创建一个发布项。将为可在当前主机<!--
+-->构建的每个目标自动创建发布项，但 Android 目标除外，Android 目标需要额外的步骤来配置<!--
+-->发布，参见[发布 Android 库](#发布-android-库)。
 
-The repositories where the library will be published are added via the `repositories` block in the `publishing { ... }`
-DSL, as explained in [Maven Publish Plugin. Repositories](https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:repositories).
+通过在 `publishing { …… }` DSL 中的 `repositories` 块添加将被发布的库的仓库。
+如 [Maven Publish Plugin. Repositories](https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:repositories) 所述。
 
-The default artifact IDs follow the pattern `<projectName>-<targetNameToLowerCase>`, for example `sample-lib-nodejs`
-for a target named `nodeJs` in a project `sample-lib`.
+默认构件 ID 遵循模式 `<项目名称>-<小写的目标名称>`，例如对于项目 `sample-lib` 中<!--
+-->名为 `nodeJs` 的目标，为 `sample-lib-nodejs`。
 
-By default, a sources JAR is added to each publication in addition to its main artifact. The sources JAR contains the
-sources used by the `main` compilation of the target. If you also need to publish a documentation artifact (like a
-Javadoc JAR), you need to configure its build manually and add it as an artifact to the relevant publications, as shown
-below.
+默认情况下，将为每个发布项中添加源代码 JAR（除了它的主构件）。源代码 JAR 包含了<!--
+-->目标主编译项所使用的源代码。如果你还需要发布文档构件（例如
+Javadoc JAR），则需要手动配置其构建并且将其作为构件添加到相关发布项中，如<!--
+-->下所示。
 
-Also, an additional publication under the name `metadata` is added by default which contains serialized Kotlin
-declarations and is used by the IDE to analyze multiplatform libraries.
-The default artifact ID of this publication is formed as `<projectName>-metadata`.
+此外，会默认添加名为 `metadata` 的额外发布项，它包含序列化的 Kotlin
+定义并且被 IDE 用于分析多平台库。
+这个发布项的默认构件 ID 的形式为 `<项目名称>-metadata`。
 
-The Maven coordinates can be altered and additional artifact files may be added to the publications within the
-`targets { ... }` block or the `publishing { ... }` DSL:
+可以更改 Maven 坐标，并且可以为在
+`targets { …… }` 块或 `publishing { …… }` DSL 中的发布项添加额外的构件文件：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1185,20 +1187,20 @@ The Maven coordinates can be altered and additional artifact files may be added 
 ```groovy
 kotlin {
     jvm('jvm6') {
-        mavenPublication { // Setup the publication for the target 'jvm6'
-            // The default artifactId was 'foo-jvm6', change it:
+        mavenPublication { // 为目标 “jvm6” 设置发布项
+            // 默认的 artifactId 为 “foo-jvm6”，修改它：
             artifactId = 'foo-jvm'
-            // Add a docs JAR artifact (it should be a custom task):
+            // 添加 docs JAR 构件（应是一个自定义任务）：
             artifact(jvmDocsJar)
         }
     }
 }
 
-// Alternatively, configure the publications with the `publishing { ... }` DSL:
+// 使用 `publishing { …… }` DSL 来配置发布项是可选的：
 publishing {
     publications {
-        jvm6 { /* Setup the publication for target 'jvm6' */ }
-        metadata { /* Setup the publication for Kotlin metadata */ }
+        jvm6 { /* 为目标 “jvm6” 设置发布项 */ }
+        metadata { /* 为 Kotlin 元数据设置发布项 */ }
     }
 }
 ```
@@ -1212,20 +1214,20 @@ publishing {
 ```kotlin
 kotlin {
     jvm("jvm6") {
-        mavenPublication { // Setup the publication for the target 'jvm6'
-            // The default artifactId was 'foo-jvm6', change it:
+        mavenPublication { // 为目标 “jvm6” 设置发布项
+            // 默认的 artifactId 为 “foo-jvm6”，修改它：
             artifactId = "foo-jvm"
-            // Add a docs JAR artifact (it should be a custom task):
+            // 添加 docs JAR 构件（应是一个自定义任务）：
             artifact(jvmDocsJar)
         }
     }
 }
 
-// Alternatively, configure the publications with the `publishing { ... }` DSL:
+// 使用 `publishing { …… }` DSL 来配置发布项是可选的：
 publishing {
     publications.withType<MavenPublication>().apply {
-        val jvm6 by getting { /* Setup the publication for target 'jvm6' */ }
-        val metadata by getting { /* Setup the publication for Kotlin metadata */ }
+        val jvm6 by getting { /* 为目标 “jvm6” 设置发布项 */ }
+        val metadata by getting { /* 为 Kotlin 元数据设置发布项 */ }
     }
 }
 ```
@@ -1233,14 +1235,14 @@ publishing {
 </div>
 </div>
 
-As assembling Kotlin/Native artifacts requires several builds to run on different host platforms, publishing a
-multiplatform library that includes Kotlin/Native targets needs to be done with that same set of host machines. To avoid
-duplicate publications of modules that can be built on more than one of the platforms
-(like JVM, JS, Kotlin metadata, WebAssembly), the publishing tasks for these modules may be configured to run
-conditionally.
+由于 Kotlin/Native 的汇编构件需要多次构建才能在不同的主机平台运行，所以发布<!--
+-->包含 Kotlin/Native 目标的多平台库需要使用同一套主机进行。为了避免<!--
+-->重复发布能在多个平台
+（例如 JVM、JS、Kotlin 元数据以及 WebAssembly）上构建的模块，可以将这些模块的发布任务配置为<!--
+-->有条件地运行。
 
-This simplified example ensures that the JVM, JS, and Kotlin metadata publications are only uploaded when
-`-PisLinux=true` is passed to the build in the command line:
+这个简化的例子确保了 JVM、JS 与 Kotlin 元数据的发布仅在命令行中传递
+`-PisLinux=true` 到构建时上传：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1252,8 +1254,8 @@ kotlin {
     mingwX64()
     linuxX64()
 
-    // Note that the Kotlin metadata is here, too.
-    // The mingwx64() target is automatically skipped as incompatible in Linux builds.
+    // 注意 Kotlin 元数据也在这里。
+    // 由于 mingwx64() 目标在 Linux 构建中不兼容而被自动跳过。
     configure([targets["metadata"], jvm(), js()]) {
         mavenPublication { targetPublication ->
             tasks.withType(AbstractPublishToMaven)
@@ -1277,8 +1279,8 @@ kotlin {
     mingwX64()
     linuxX64()
 
-    // Note that the Kotlin metadata is here, too.
-    // The mingwx64() target is automatically skipped as incompatible in Linux builds.
+    // 注意 Kotlin 元数据也在这里。
+    // 由于 mingwx64() 目标在 Linux 构建中不兼容而被自动跳过。
     configure(listOf(metadata(), jvm(), js())) {
         mavenPublication {
             val targetPublication = this@mavenPublication
@@ -1293,25 +1295,25 @@ kotlin {
 </div>
 </div>
 
-### Experimental metadata publishing mode
+### 实验性的元数据发布模式
 
-Gradle module metadata provides rich publishing and dependency resolution features that are used in Kotlin
-multiplatform projects to simplify dependencies configuration for build authors. In particular, the publications of a
-multiplatform library may include a special 'root' module that stands for the whole library and is automatically
-resolved to the appropriate platform-specific artifacts when added as a dependency, as described below.
+Gradle 模块元数据提供了丰富的发布与解析依赖项的特性，这些特性用于 Kotlin
+多平台项目来为构建作者简化依赖配置。特别是多平台库的发布项<!--
+-->可能包含一个特殊的 “根” 模块，它基于整个库，并且<!--
+-->在添加为依赖项时自动解析到适当的特定平台构件中，如下所述。
 
-In Gradle 5.3 and above, the module metadata is always used during dependency resolution, but publications don't
-include any module metadata by default. To enable module metadata publishing, add
-`enableFeaturePreview("GRADLE_METADATA")` to the root project's `settings.gradle` file. With older Gradle versions,
-this is also required for module metadata consumption.
+Gradle 5.3 或更高的版本，依赖项解析期间总是使用模块元数据，但在默认情况下，发布项不会<!--
+-->包含任何模块元数据。为了启用发布模块元数据，需要添加
+`enableFeaturePreview("GRADLE_METADATA")` 到根项目的 `settings.gradle` 文件。对于更旧的 Gradle 版本，
+模块元数据的使用也需要这个。
 
-> Note that the module metadata published by Gradle 5.3 and above cannot be read by Gradle versions older
-> than 5.3.
+> 注意通过 Gradle 5.3 或更高版本发布的模块元数据不能被低于
+> 5.3 的 Gradle 所读取。
 {:.note}
 
-With Gradle metadata enabled, an additional 'root' publication named `kotlinMultiplatform` is added to the project's
-publications. The default artifact ID of this publication matches the project name without any additional suffix.
-To configure this publication, access it via the `publishing { ... }` DSL of the `maven-publish` plugin:
+随着启用 Gradle 元数据，一个额外的名为 `kotlinMultiplatform` 的 “根” 发布项将添加到项目的<!--
+-->发布项中。这个发布项的默认构件 ID 与没有任何额外后缀的项目名称相匹配。
+为了配置这个发布项，可以通过 `maven-publish` 插件的 `publishing { …… }` DSL 访问：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1349,15 +1351,15 @@ publishing {
 </div>
 </div>
 
-This publication does not include any artifacts and only references the other publications as its variants. However, it
-may need the sources and documentation artifacts if that is required by the repository. In that case, add those artifacts
-by using [`artifact(...)`](https://docs.gradle.org/current/javadoc/org/gradle/api/publish/maven/MavenPublication.html#artifact-java.lang.Object-)
-in the publication's scope, which is accessed as shown above.
+这个发布项没有包含任何构件并且仅将其他发布项引用为它的变体。然而，
+如果仓库需要，则可能需要提供源代码和文档构件。在这种情况下，在发布项的 scope 中<!--
+-->通过使用 [`artifact(...)`](https://docs.gradle.org/current/javadoc/org/gradle/api/publish/maven/MavenPublication.html#artifact-java.lang.Object-) 
+添加那些构件， 如上所示访问。
 
-If a library has a 'root' publication, the consumer may specify a single dependency on the library as a whole in a
- common source set, and a corresponding platform-specific variant will be chosen, if available, for each of the
- compilations that include this dependency. Consider a `sample-lib` library built for the JVM and JS and published with
- a 'root' publication:
+如果库拥有一个 “根” 发布项，用户可以在公共源集中指定对整个库的单个依赖，
+并且将为每个包含这个依赖项的编译项（如果有）选择一个合适的特定平台版本。
+考虑一个为 JVM 与 JS 编译并且与
+“根” 发布项一起发布的 `sample-lib` 库：
  
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1370,8 +1372,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                // This single dependency is resolved to the appropriate target modules,
-                // for example, `sample-lib-jvm6` for JVM, `sample-lib-js` for JS:
+                // 这单个依赖将解析到适当的目标模块，
+                // 例如，对于 JVM 解析为 `sample-lib-jvm6`，而对于 JS 解析为 `sample-lib-js`：
                 api 'com.example:sample-lib:1.0'
             }
         }
@@ -1393,8 +1395,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                // This single dependency is resolved to the appropriate target modules,
-                // for example, `sample-lib-jvm6` for JVM, `sample-lib-js` for JS:
+                // 这单个依赖将解析到适当的目标模块，
+                // 例如，对于 JVM 解析为 `sample-lib-jvm6`，而对于 JS 解析为 `sample-lib-js`：
                 api("com.example:sample-lib:1.0")
             }
         }
@@ -1405,24 +1407,24 @@ kotlin {
 </div>
 </div>
 
-This requires that the consumer's Gradle build can read Gradle module metadata, either using Gradle 5.3+ or explicitly
-enabling it by `enableFeaturePreview("GRADLE_METADATA")` in `settings.gradle`.
+这需要使用者的 Gradle 构建可以读取 Gradle 模块元数据，要么使用 Gradle 5.3+，要么<!--
+-->在 `settings.gradle` 中通过 `enableFeaturePreview("GRADLE_METADATA")` 显式地启用它
 
-### Disambiguating targets
+### 目标消歧义
 
-It is possible to have more than one target for a single platform in a multiplatform library. For example, these targets
-may provide the same API and differ in the libraries they cooperate with at runtime, like testing frameworks or logging solutions. 
+在一个多平台库中，对于单个平台可能拥有多个目标。例如，这些目标<!--
+-->可能提供了相同的 API，并且在运行时调用的实现库中有所不同，例如测试框架或日志解决方案。
 
-However, dependencies on such a multiplatform library may be ambiguous and may thus fail to resolve because there is not
-enough information to decide which of the targets to choose.
+然而，对这种多平台库的依赖可能存在歧义，并且可能因为没有<!--
+-->充足的信息来决定选择哪个目标，从而导致解析的失败。
 
-The solution is to mark the targets with a custom attribute, which is taken into account by Gradle during dependency
-resolution. This, however, must be done on both the library author and the consumer sides,
-and it's the library author's responsibility to communicate the attribute and its possible values to the consumers.
+解决的方法是用自定义属性标记目标, Gradle 会根据它来解析依赖项。
+但是，库的作者与用户必须同时给目标加上自定义属性，
+并且库作者有责任将属性与可能的值传达给使用者。
  
-Adding attributes is done symmetrically, to both the library and the consumer projects. For example, consider a testing
-library that supports both JUnit and TestNG in the two targets. The library author needs to add an attribute to both
-targets as follows:
+添加属性对库作者和用户来说是对称的。例如，考虑一个<!--
+-->在两个目标中分别支持了 JUnit 和 TestNG 的测试库。库作者需要为这两个<!--
+-->目标添加属性，如下： 
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1462,10 +1464,10 @@ kotlin {
 </div>
 </div>
 
-The consumer may only need to add the attribute to a single target where the ambiguity arises.
+用户可能只需要给产生歧义的单个目标添加属性。
 
-If the same kind of ambiguity arises when a dependency is added to a custom configuration rather than one of the
-configurations created by the plugin, you can add the attributes to the configuration in the same way:
+如果将依赖项被添加到自定义的配置项中（而不是<!--
+-->通过插件创建的配置项之一）时出现了相同的歧义，你可以通过相同的方式将属性添加到配置项中：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1501,11 +1503,11 @@ configurations {
 
 ## JVM 目标平台中的 Java 支持
 
-This feature is available since Kotlin 1.3.40.
+这个特性自 Kotlin 1.3.40 可用。
 
-By default, a JVM target ignores Java sources and only compiles Kotlin source files.
-To include Java sources in the compilations of a JVM target, or to apply a Gradle plugin that requires the
-`java` plugin to work, you need to explicitly enable Java support for the target:
+默认情况下，JVM 目标将忽略 Java 源代码，并且只编译 Kotlin 源文件。
+为了将 Java 源代码包含入 JVM 目标的编译项中，或是为了应用需要
+`java` 插件才能工作的 Gradle 插件，你需要为目标显式地启用 Java 支持：
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
@@ -1519,13 +1521,13 @@ kotlin {
 
 </div>
 
-This will apply the Gradle `java` plugin and configure the target to cooperate with it.
-Note that just applying the Java plugin without specifying `withJava()` in a JVM
-target will have no effect on the target.
+这将会应用 Gradle `java` 插件，并配置目标以与它协作。
+注意，在 JVM 目标中仅应用 Java 插件但没有指定 `withJava()`，
+将不会对目标有任何影响。
 
-The file system locations for the Java sources are different from  the `java` plugin's defaults.
-The Java source files need to be placed in the sibling directories of the Kotlin source
-roots. For example, if the JVM target has the default name `jvm`, the paths are:
+Java 源代码的文件系统位置与 `java` 插件的默认值不同。
+Java 源文件需要被放置在 Kotlin 源代码<!--
+-->根目录的同级目录中。例如，如果 JVM 目标有一个默认名称 `jvm`，则路径为：
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
@@ -1543,23 +1545,23 @@ src
 
 </div>
 
-The common source sets cannot include Java sources.
+公共源集不能包含 Java 源代码。
 
-Due to the current limitations, some tasks configured by the Java plugin are disabled, and the corresponding tasks added
-by the Kotlin plugin are used instead:
+由于当前的限制，一些由 Java 插件配置的任务将被禁用，并且 Kotlin 插件添加了<!--
+-->相应的任务来代替它们：
 
-* `jar` is disabled in favor of the target's JAR task (e.g. `jvmJar`)
-* `test` is disabled, and the target's test task is used (e.g. `jvmTest`)
-* `*ProcessResources` tasks are disabled, and the resources are processed by the equivalent tasks of the compilations
+* `jar` 被禁用，取而代之的是目标的 JAR 任务（例如 `jvmJar`）
+* `test` 被禁用，并且使用目标的测试任务（例如 `jvmTest`）
+* `*ProcessResources` 任务被禁用，并且资源将由编译项的等价任务处理
 
-The publication of this target is handled by the Kotlin plugin and doesn't require the steps that are specific to the
-Java plugin, such as manually creating a publication and configuring it as `from(components.java)`.
+这个目标的发布项将由 Kotlin 插件处理，并且不需要特定于
+Java 插件的步骤，例如手动创建发布项并配置它为 `from(components.java)`。
 
 ##  Android 支持
 
-Kotlin Multiplatform projects support the Android platform by providing the `android` preset.
-Creating an Android target requires that one of the Android Gradle plugins, like `com.android.application` or
-`com.android.library` is manually applied to the project. Only one Android target may be created per Gradle subproject:
+Kotlin 多平台项目通过提供 `android` 内置函数支持 Android 平台。
+创建 Android 目标需要 Android Gradle 插件之一，例如手动应用`com.android.application` 或
+`com.android.library` 到项目中。每个 Gradle 子项目仅可能创建一个 Android 目标：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1573,8 +1575,8 @@ plugins {
 android { /* …… */ }
 
 kotlin {
-    android { // Create the Android target
-        // Provide additional configuration if necessary
+    android { // 创建 Android 目标
+        // 提供必要的附加配置
     }
 }
 ```
@@ -1594,8 +1596,8 @@ plugins {
 android { /* …… */ }
 
 kotlin {
-    android { // Create the Android target
-        // Provide additional configuration if necessary
+    android { // 创建 Android 目标
+        // 提供必要的附加配置
     }
 }
 ```
@@ -1603,20 +1605,20 @@ kotlin {
 </div>
 </div>
 
-An Android target's compilations created by default are tied to [Android build variants](https://developer.android.com/studio/build/build-variants):
-for each build variant, a Kotlin compilation is created under the same name.
+默认创建的 Android 目标编译项与 [Android 构建变体](https://developer.android.com/studio/build/build-variants)相关联：
+对于每个构建变体，将会以相同的名称创建 Kotlin 构建项。
 
-Then, for each [Android source set](https://developer.android.com/studio/build/build-variants#sourcesets) compiled by
-the variants, a Kotlin source set is created under that source set name
-prepended by the target name, like Kotlin source set `androidDebug` for an Android source set `debug` and the Kotlin target
-named `android`. These Kotlin source sets are added to the variants compilations accordingly.
+然后，对于每个通过变体编译的 [Android 源集](https://developer.android.com/studio/build/build-variants#sourcesets)，
+将在目标名称前面的那个源集名称下创建 Kotlin 源集，
+例如 Kotlin 源集 `androidDebug` 用于 Android 源集 `debug`
+与名为 `android` 的 Kotlin 目标。 这些 Kotlin 源集将相应地添加到变体编译项中。
 
-The default source set `commonMain` is added to each production (application or library) variant's compilation. The
-`commonTest` source set is, similarly, added to the compilations of unit test and instrumented test variants.
+默认源集 `commonMain` 将添加到每个生产项（应用或库）变体的编译项中。
+类似地，`commonTest` 源集也将添加到单元测试的编译项，以及 instrumented 测试变体中。
 
-Annotation processing with [kapt](/docs/reference/kapt.html) is also supported but, due to the current limitations,
-it requires that the Android target is created before the `kapt` dependencies are configured, which needs
-to be done in a top-level `dependencies { ... }` block rather than within Kotlin source sets dependencies.
+使用 [kapt](/docs/reference/kapt.html) 进行注解处理也是受支持的，但，由于当前的限制，
+它要求 Android 目标需要在配置 `kapt` 依赖之前创建，`kapt` 依赖需要在<!--
+-->顶级 `dependencies { …… }` 代码块（而不是 Kotlin 源集依赖）中完成。
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
@@ -1636,13 +1638,13 @@ dependencies {
 
 ### 发布 Android 库
 
-To publish an Android library as a part of a multiplatform library, one needs to
-[setup publishing for the library](#发布多平台库) and provide additional configuration for the
-Android library target.
+为了将 Android 库发布为多平台库的一部分，需要<!--
+-->[为库设定发布项](#发布多平台库)，并且为
+Android 库目标提供额外的配置项。
 
-By default, no artifacts of an Android library are published. To publish artifacts produced by a set of
-[Android variants](https://developer.android.com/studio/build/build-variants), specify the variant names in the Android
-target block as follows:
+默认情况下，不会发布 Android 库的构件。为了发布
+[Android 变体](https://developer.android.com/studio/build/build-variants)生成的一系列构件，需要在 Android
+目标代码块中指定变体名称，如下所示：
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
@@ -1656,13 +1658,13 @@ kotlin {
 
 </div>
 
-The example above will work for Android libraries with no product flavors. For a library with product flavors, the
-variant names also contain the flavors, like `fooBarDebug` or `fooBazRelease`.
+上面的例子将在没有产品类型的 Android 库上工作。对于有产品类型的库，变体<!--
+-->名称也要包含产品类型，例如 `fooBarDebug` 或是 `fooBazRelease`。
 
-Note that if a library consumer defines variants that are missing in the library, they need to provide
-[matching fallbacks](https://developer.android.com/studio/build/dependencies#resolve_matching_errors). For example, if
-a library does not have or does not publish a `staging` build type, it will be necessary to provide a fallback for the
-consumers who have such a build type, specifying at least one of the build types that the library publishes:
+注意，如果库用户定义了库中缺失的变体，则他们需要提供<!--
+-->[备用的匹配](https://developer.android.com/studio/build/dependencies#resolve_matching_errors)。例如，如果<!--
+-->库不具有，或者没有发布 `staging` 构建类型，那么有必要为<!--
+-->拥有这种构建类型的使用者提供备用的匹配，至少指定库发布项的一个构建类型：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1698,12 +1700,12 @@ android {
 </div>
 </div>
 
-Similarly, a library consumer may need to provide matching fallbacks for custom product flavors if some are missing in
-the library publications.
+类似地，如果库发布项中缺失某些备用的匹配，那么库用户也许需要为自定义产品类型<!--
+-->提供它们。
 
-There is an option to publish variants grouped by the product flavor, so that the outputs of the different build
-types are placed in a single module, with the build type becoming a classifier for the artifacts (the release build
-type is still published with no classifier). This mode is disabled by default and can be enabled as follows:
+你可以选择发布按产品类型分组的变体，以便将不同构建类型的输出<!--
+-->放置在单独的模块中，并使构建类型成为构建的分类器（release 构建<!--
+-->类型不通过分类器发布）。这个模式默认是禁用的，不过可以通过以下方式启用：
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
@@ -1717,27 +1719,27 @@ kotlin {
 
 </div>
 
-It is not recommended to publish variants grouped by the product flavor in case they have different dependencies, as
-those will be merged into one dependencies list.
+不推荐发布按产品类型分组的变体，以免它们拥有不同的依赖项，因为<!--
+-->这些将被合并到一个依赖项列表中。
 
 ## 使用 Kotlin/Native 目标平台
 
-It is important to note that some of the [Kotlin/Native targets](#已支持平台) may only be built with an appropriate host machine:
+重要的是，注意某些 [Kotlin/Native 目标](#已支持平台)仅能在适当的主机上被编译：
 
-* Linux MIPS targets (`linuxMips32` and `linuxMipsel32`) require a Linux host. Other Linux targets can be built on any supported host;
-* Windows targets require a Windows host;
-* macOS and iOS targets can only be built on a macOS host;
-* The 64-bit Android Native target require a Linux or macOS host. The 32-bit Android Native target can be built on any supported host.
+* Linux MIPS 目标（`linuxMips32` 与 `linuxMipsel32`）需要一台 Linux 主机。其他 Linux 目标则可以在任意受支持的主机上编译。
+* Windows 目标需要一台 Windows 主机；
+* macOS 与 iOS 目标只能在 macOS 主机上编译；
+* 64 位的 Android 原生目标需要一台 Linux 或 macOS 主机。32 位的 Android 原生目标则可以在任意受支持的主机上编译。
 
-A target that is not supported by the current host is ignored during build and therefore not published. A library author may want to set up
-builds and publishing from different hosts as required by the library target platforms.
+当前主机不支持的目标在构建期间会被忽略，因此也不会发布。库作者可能希望在目标库平台所需的不同主机上<!--
+-->进行构建和发布。
 
 ### 目标快捷方式
 
-Some native targets are often created together and use the same sources. For example, building for an iOS device and a simulator
-is represented by different targets (`iosArm64` and `iosX64` respectively) but their source codes are usually the same.
-A canonical way to express such shared code in the multiplatform project model is creating an intermediate
-source set (`iosMain`) and configuring links between it and the platform source sets:
+一些原生目标经常一同创建，并且使用相同的源代码。例如，iOS 设备与模拟器<!--
+-->的构建由不同的目标（分别是 `iosArm64` 与 `iosX64`）表示，但它们的源代码通常是相同的。
+多平台项目模型中来表示这种共享代码的一个经典方式是创建一个中间<!--
+-->源集（`iosMain`），并且在它和平台源集之间配置链接：
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -1773,28 +1775,28 @@ val iosMain by sourceSets.creating {
 </div>
 </div>
 
-Since 1.3.60, the `kotlin-multiplaform` plugin provides shortcuts that automate such a configuration: they let users
-create a group of targets along with a common source set for them with a single DSL method.
+自 1.3.60 起，`kotlin-multiplaform` 插件提供了自动化这些配置的快捷方式：它们使用户<!--
+-->可以通过单个 DSL 方法来创建一组目标以及公共源集。
 
-The following shortcuts are available:
+可用快捷方式有这些：
 
- * `ios` creates targets for `iosArm64` and `iosX64`.
- * `watchos` creates targets for  `watchosArm32`, `watchosArm64`, and `watchosX86`.
- * `tvos` creates targets for  `tvosArm64` and `tvosX64`. 
+ * `ios` 为 `iosArm64` 与 `iosX64` 创建目标。
+ * `watchos` 为 `watchosArm32`、`watchosArm64` 以及 `watchosX86` 创建目标。
+ * `tvos` 为 `tvosArm64` 与 `tvosX64` 创建目标。
 
 <div class="sample" markdown="1" theme="idea" mode='kotlin' data-highlight-only>
 
 ```kotlin
-// Create two targets for iOS.
-// Create common source sets: iosMain and iosTest.
+// 为 iOS 创建两个目标。
+// 创建公共源集：iosMain 与 iosTest。
 ios {
-    // Configure targets.
-    // Note: this lambda will be called for each target.
+    // 配置目标。
+    // 注意：将会为每个目标调用这个 lambda。
 }
 
-// You can also specify a name prefix for created targets.
-// Common source sets will also have this prefix:
-// anotherIosMain and anotherIosTest.
+// 你也可以指定一个名称前缀来创建目标。
+// 公共源集也将会有一个前缀：
+// anotherIosMain 与 anotherIosTest。
 ios("anotherIos")
 ```
 
@@ -1802,15 +1804,15 @@ ios("anotherIos")
 
 ### 构建最终原生二进制文件
 
-By default, a Kotlin/Native target is compiled down to a `*.klib` library artifact, which can be consumed by Kotlin/Native itself as a
-dependency but cannot be executed or used as a native library. To declare final native binaries like executables or shared libraries a `binaries`
-property of a native target is used. This property represents a collection of native binaries built for this target in addition to the
-default `*.klib` artifact and provides a set of methods for declaring and configuring them.
+默认情况下，Kotlin/Native 目标将被编译为 `*.klib` 库构件，它可以被 Kotlin/Native 自身作为<!--
+-->依赖项使用，但并不能被执行，或是用作原生库。为了声明像可执行文件或是链接库的最终原生二进制文件，
+需要使用原生目标的 `binaries` 属性。除默认 `*.klib` 构建外，
+这个属性还代表一个为这个目标构建的原生二进制文件集合，并且提供了一系列声明和配置它们的方法。
 
-Note that the `kotlin-multiplaform` plugin doesn't create any production binaries by default. The only binary available by default
-is a debug executable allowing one to run tests from the `test` compilation.
+注意，`kotlin-multiplaform` 插件默认不会创建任何生产二进制文件。默认情况下，
+唯一可用的二进制文件是调试可执行文件，它允许运行来自 `test` 编译项的测试。
 
-#### Declaring binaries
+#### 声明二进制文件
 
 A set of factory methods is used for declaring elements of the `binaries` collection. These methods allow one to specify what kinds of binaries are to be created and configure them. The following binary kinds are supported (note that not all the kinds are available for
 all native platforms):
@@ -1932,7 +1934,7 @@ binaries {
 The first argument in this example allows one to set a name prefix for the created binaries which is used to access them in the buildscript (see the ["Accessing binaries"](#accessing-binaries) section).
 Also this prefix is used as a default name for the binary file. For example on Windows the sample above produces files `foo.exe` and `bar.exe`.
 
-#### Accessing binaries
+#### 访问二进制文件
 
 The binaries DSL allows not only creating binaries but also accessing already created ones to configure them or get their properties
 (e.g. path to an output file). The `binaries` collection implements the
@@ -2035,7 +2037,7 @@ binaries.findExecutable("foo", DEBUG)
 {:.note}
  
 
-#### Configuring binaries
+#### 配置二进制文件
 
 Binaries have a set of properties allowing one to configure them. The following options are available:
 
@@ -2136,11 +2138,11 @@ binaries {
 </div>
 </div>
 
-#### Exporting dependencies in frameworks
+#### 导出依赖项为二进制文件
 
-When building an Objective-C framework, it is often necessary to pack not just the classes of the current project,
-but also the classes of some of its dependencies. The Binaries DSL allows one to specify which dependencies will be exported
-in the framework using the `export` method.  Note that only API dependencies of a corresponding source set can be exported.
+When building an Objective-C framework or a native library (shared or static), it is often necessary to pack not just the
+classes of the current project, but also the classes of some of its dependencies. The Binaries DSL allows one to specify
+which dependencies will be exported to a binary using the `export` method. Note that only API dependencies of a corresponding source set can be exported.
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -2149,11 +2151,11 @@ in the framework using the `export` method.  Note that only API dependencies of 
 kotlin {
     sourceSets {
         macosMain.dependencies {
-            // Will be exported in the framework.
+            // Will be exported.
             api project(':dependency')
             api 'org.example:exported-library:1.0'
 
-            // Will not be exported in the framework.
+            // Will not be exported.
             api 'org.example:not-exported-library:1.0'
         }
     }
@@ -2162,6 +2164,11 @@ kotlin {
         framework {
             export project(':dependency')
             export 'org.example:exported-library:1.0'
+        }
+
+        sharedLib {
+            // It's possible to export different sets of dependencies to different binaries.
+            export project(':dependency')
         }
     }
 }
@@ -2177,11 +2184,11 @@ kotlin {
 kotlin {
     sourceSets {
         macosMain.dependencies {
-            // Will be exported in the framework.
+            // Will be exported.
             api(project(":dependency"))
             api("org.example:exported-library:1.0")
 
-            // Will not be exported in the framework.
+            // Will not be exported.
             api("org.example:not-exported-library:1.0")
         }
     }
@@ -2190,6 +2197,11 @@ kotlin {
         framework {
             export(project(":dependency"))
             export("org.example:exported-library:1.0")
+        }
+
+        sharedLib {
+            // It's possible to export different sets of dependencies to different binaries.
+            export(project(':dependency'))
         }
     }
 }
@@ -2203,7 +2215,7 @@ should be either a platform one (e.g. `kotlinx-coroutines-core-native_debug_maco
 or be exported transitively (see below).
 
 By default, export works non-transitively. If a library `foo` depending on library `bar` is exported, only methods of `foo` will
-be added in the output framework. This behaviour can by changed by the `transitiveExport` flag.
+be added in the output framework. This behaviour can be changed by the `transitiveExport` flag.
 
 <div class="multi-language-sample" data-lang="groovy">
 <div class="sample" markdown="1" theme="idea" mode='groovy'>
@@ -2237,7 +2249,7 @@ binaries {
 </div>
 </div>
 
-#### Building universal frameworks
+#### 构建通用框架
 
 By default, an Objective-C framework produced by Kotlin/Native supports only one platform. However, such frameworks can be merged
 into a single universal (fat) binary using the `lipo` utility. Particularly, such an operation makes sense for 32-bit and 64-bit iOS
@@ -2322,7 +2334,7 @@ kotlin {
 </div>
 </div>
 
-### CInterop support
+### C 互操作支持
 
 Since Kotlin/Native provides [interoperability with native languages](native/c_interop.html),
 there is a DSL allowing one to configure this feature for a specific compilation.

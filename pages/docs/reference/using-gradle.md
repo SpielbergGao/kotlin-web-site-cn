@@ -213,8 +213,10 @@ plugins {
 <div class="sample" markdown="1" mode="groovy" theme="idea" data-lang="groovy">
 
 ```groovy
-sourceSets {
-    main.kotlin.srcDirs += 'src/main/myKotlin'
+kotlin {
+    sourceSets {
+        main.kotlin.srcDirs += 'src/main/myKotlin'
+    }
 }
 ```
 
@@ -225,37 +227,9 @@ sourceSets {
 <div class="sample" markdown="1" mode="kotlin" theme="idea" data-lang="kotlin" data-highlight-only>
 
 ```kotlin
-sourceSets["main"].withConvention(KotlinSourceSet::class) {
-    kotlin.srcDir("src/main/myKotlin")
-}
-```
-
-</div>
-</div>
-
-除了输出的 JavaScript 文件，该插件默认会创建一个带二进制描述符的额外 JS 文件。
-如果你是构建其他 Kotlin 模块可以依赖的可重用库，那么该文件是必需的，并且应该与转换结果一起分发。
-其生成由 `kotlinOptions.metaInfo` 选项控制：
-
-<div class="multi-language-sample" data-lang="groovy">
-<div class="sample" markdown="1" mode="groovy" theme="idea" data-lang="groovy">
-
-```groovy
-compileKotlin2Js {
-    kotlinOptions.metaInfo = true
-}
-```
-
-</div>
-</div>
-
-<div class="multi-language-sample" data-lang="kotlin">
-<div class="sample" markdown="1" mode="kotlin" theme="idea" data-lang="kotlin" data-highlight-only>
-
-```kotlin
-tasks {
-    "compileKotlin2Js"(Kotlin2JsCompile::class)  {
-        kotlinOptions.metaInfo = true
+kotlin {
+    sourceSets["main"].apply {    
+        kotlin.srcDir("src/main/myKotlin") 
     }
 }
 ```
@@ -617,7 +591,7 @@ tasks.withType<KotlinCompile>().configureEach {
 |------|-------------|-----------------|--------------|
 | `javaParameters` | 为方法参数生成 Java 1.8 反射的元数据 |  | false |
 | `jdkHome` | 将来自指定位置的自定义 JDK 而不是默认的 JAVA_HOME 包含到类路径中 |  |  |
-| `jvmTarget` | 生成的 JVM 字节码的目标版本（1.6、 1.8、 9、 10、 11 或 12），默认为 1.6 | "1.6"、 "1.8"、 "9"、 "10"、 "11"、 "12" | "1.6" |
+| `jvmTarget` | 生成的 JVM 字节码的目标版本（1.6、 1.8、 9、 10、 11、 12 或 13），默认为 1.6 | "1.6"、 "1.8"、 "9"、 "10"、 "11"、 "12"、 "13" | "1.6" |
 | `noJdk` | 不要自动在类路径中包含 Java 运行时 |  | false |
 | `noReflect` | 不要自动在类路径中包含 Kotlin 反射实现 |  | true |
 | `noStdlib` | 不要自动在类路径中包含 Kotlin 运行时与 Kotlin 反射 |  | true |
